@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CFN template of FSx for Lustre
+
+Parameters:
+  FSxName:
+     Type: String
+     Default: 'ml-persistent-ssd'
+  PrivateSubnets:
+    Type: CommaDelimitedList
+    Description: The list of SubnetIds in your Virtual Private Cloud (VPC)
+    Default: subnet-12345, subnet-34567, subnet-67890 
+  SecurityGroups:
+    Type: CommaDelimitedList
+    Description: The list of SecurityGroupIds in your Virtual Private Cloud (VPC)
+    Default: sg-a123fd85, sg-b456ge94
+  StorageSize:
+    Type: Number
+    Default: 1200
+    MinValue: 1200
+    MaxValue: 3600
+    ConstraintDescription: Must be an integer between 1200 (GB) and 3600 (GB).
+    Description: Enter the size of the FSx in GB.
+  S3BucketName:
+     Type: String
+     Default: 'auto-xxx'
+     Description: S3 bucket for data sync
+
+    
+Resources:
+  S3LinkedLustreFS:
+    Type: AWS::FSx::FileSystem
+    Properties:
+      FileSystemType: "LUSTRE"
+      StorageCapacity: !Ref StorageSize
+      SubnetIds: !Ref PrivateSubnets
+      SecurityGroupIds: !Ref SecurityGroups
+      Tags:
+        - Key: "Name"
+          Value: !Ref FSxName
+      LustreConfiguration:
+        AutoImportPolicy: "NEW"
+        CopyTagsToBackups: true
+        DeploymentType: "PERSISTENT_1"
+        PerUnitStorageThroughput: 200
+        DataCompressionType: "NONE"
+        ImportPath: !Sub s3://${S3BucketName}
+        ExportPath: !Sub s3://${S3BucketName}/.
+  
+
+Outputs:
+  FileSystemId:
+    Description: FSx Lustre FS ID
+    Value: !Ref S3LinkedLustreFS 
